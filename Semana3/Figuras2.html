@@ -1,0 +1,288 @@
+<html>
+
+<head>
+<title>Aprende webGL &mdash; Leccion 1</title>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+
+<script type="text/javascript" src="C:/Users/AnaJulieta/Documents/Aprende webGL — Leccion 1_files/glMatrix-0.9.5.min.js"></script>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+    #ifdef GL_ES
+    precision highp float;
+    #endif
+	varying vec4 vcolor;//Tarea3  
+
+    void main(void) {
+        //gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+		gl_FragColor=vcolor;
+    }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+    attribute vec3 aVertexPosition;
+	attribute vec4 aVertexColor;
+
+    uniform mat4 uMVMatrix;
+    uniform mat4 uPMatrix;
+	varying vec4 vcolor;
+
+    void main(void) {
+        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+		vcolor = aVertexColor;
+    }
+</script>
+
+
+<script type="text/javascript">
+
+    var gl;
+    function initGL(canvas) {
+        try {
+            gl = canvas.getContext("experimental-webgl");
+            gl.viewportWidth = canvas.width;
+            gl.viewportHeight = canvas.height;
+        } catch (e) {
+        }
+        if (!gl) {
+            alert("No puede iniciarse webGL en este navegador");
+        }
+    }
+
+
+    function getShader(gl, id) {
+        var shaderScript = document.getElementById(id);
+        if (!shaderScript) {
+            return null;
+        }
+
+        var str = "";
+        var k = shaderScript.firstChild;
+        while (k) {
+            if (k.nodeType == 3) {
+                str += k.textContent;
+            }
+            k = k.nextSibling;
+        }
+
+        var shader;
+        if (shaderScript.type == "x-shader/x-fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (shaderScript.type == "x-shader/x-vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+
+        return shader;
+    }
+
+
+    var shaderProgram;
+
+    function initShaders() {
+        var fragmentShader = getShader(gl, "shader-fs");
+        var vertexShader = getShader(gl, "shader-vs");
+
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+            alert("No pueden iniciarse los shaders");
+        }
+
+        gl.useProgram(shaderProgram);
+
+        shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+        gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+		shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram,"aVertexColor");//tarea3
+        gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);//tarea3
+
+        shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+        shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    }
+
+
+    var mvMatrix = mat4.create();
+    var pMatrix = mat4.create();
+
+    function setMatrixUniforms() {
+        gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+        gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+    }
+
+
+
+    var triangleVertexPositionBuffer;
+	var triangleColorBuffer;//tarea3
+    var squareVertexPositionBuffer;
+	var squareColorBuffer;//tarea3
+	var hexagonVertexPositionBuffer;//tarea3
+	var hexagonColorBuffer;//tarea3
+
+    function initBuffers() {
+        triangleVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+        var vertices = [
+             0.0,  2.0,  0.0,
+            -2.0, -2.0,  0.0,
+             2.0, -2.0,  0.0
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        triangleVertexPositionBuffer.itemSize = 3;
+        triangleVertexPositionBuffer.numItems = 3;
+		triangleVertexColorBuffer=gl.createBuffer();//Semana3
+        gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexColorBuffer);//Semana3
+        var colors = [//Semana3
+            1.0,0.0,0.0,1.0,//Semana3
+            0.0,1.0,0.0,1.0,//Semana3
+            0.0,0.0,1.0,1.0
+        ];//Semana3
+        
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STATIC_DRAW);//semana3
+        triangleVertexColorBuffer.itemSize=4;//Semana3
+        triangleVertexColorBuffer.numItems=3;//Semana3
+
+        squareVertexPositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+        vertices = [
+            0.0,  2.0,  0.0,//tarea3
+            -2.0,  1.0,  0.0,//tarea3
+             2.0,  1.0,  0.0,//tarea3
+            -1.3, -2.0,  0.0,//tarea3
+			 1.3, -2.0,  0.0////tarea3
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        squareVertexPositionBuffer.itemSize = 3;
+        squareVertexPositionBuffer.numItems = 5;
+		squareVertexColorBuffer=gl.createBuffer();//Semana3
+        gl.bindBuffer(gl.ARRAY_BUFFER,squareVertexColorBuffer);//Semana3
+        var colors = [//Semana3
+            1.0,0.0,0.0,1.0,//Semana3
+            0.0,1.0,0.0,1.0,//Semana3
+            0.0,0.0,0.0,1.0,//Semana3
+            0.0,0.0,1.0,1.0,//Semana3
+            0.0,1.0,1.0,1.0 //Semana3
+        ];//Semana3
+        
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STATIC_DRAW);//semana 3
+        squareVertexColorBuffer.itemSize=4;//Semana 3
+        squareVertexColorBuffer.numItems=5;//Semana 3
+		
+        hexagonVertexPositionBuffer = gl.createBuffer();//tarea3
+        gl.bindBuffer(gl.ARRAY_BUFFER, hexagonVertexPositionBuffer);//tarea3
+        vertices = [//tarea3
+            0.0,  2.0, 0.0,//tarea3
+           -2.0,  1.0, 0.0,//tarea3
+            2.0,  1.0, 0.0,//tarea3
+           -2.0, -1.0, 0.0,//tarea3
+			2.0, -1.0, 0.0,//tarea3
+            0.0, -2.0, 0.0//tarea3
+			
+        ];//tarea3
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);//tarea3
+        hexagonVertexPositionBuffer.itemSize = 3;//tarea3
+        hexagonVertexPositionBuffer.numItems = 6;//tarea3
+		
+		
+		hexagonVertexColorBuffer=gl.createBuffer();//Semana3
+        gl.bindBuffer(gl.ARRAY_BUFFER,hexagonVertexColorBuffer);//Semana3
+        var colors = [//Semana3
+            1.0,1.0,0.0,1.0,//Semana3
+            1.0,1.0,0.0,1.0,//Semana3
+            1.0,1.0,0.0,1.0,//Semana3
+            1.0,1.0,0.0,1.0,//Semana3
+            1.0,1.0,0.0,1.0,//Semana3
+            1.0,1.0,0.0,1.0,//Semana3
+        ];//Semana3
+        
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STATIC_DRAW);//semana 3
+        hexagonVertexColorBuffer.itemSize=4;//Semana3
+        hexagonVertexColorBuffer.numItems=6;//Semana3
+    }
+
+
+    function drawScene() {
+        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        mat4.perspective(40, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
+		///En 30 se le hace zoom al triangulo 
+		///En 35 se aleja y se alcanzan a ver las dos figuras.
+		///En 40 se mira todavia mas alejadas las figuras.
+		///En 90 se miran pequenas las dos figuras.
+		///En 150 se miran mas pequenas super lejanas.
+		
+		
+		
+		
+
+        mat4.identity(mvMatrix);
+
+        mat4.translate(mvMatrix, [-3, -1.0, -14.0]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+		gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexColorBuffer);//Semana3
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT,false,0,0);//agregar semana 3
+        setMatrixUniforms();
+        gl.drawArrays( gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+		//gl.POINTS no sale nada
+		//gl.LINES Salen puras lineas blancas
+		//gl.LINE_STRIP Sale una L y Z
+		//gl.LINE_LOOP Sale el triangulo y el cuadrado en forma de reloj de arena
+		//gl.TRIANGLE_FAN Sale el triangulo pintado de blanco y el cuadrado tiene voca
+
+
+        mat4.translate(mvMatrix, [6.0, 0.0, 0.0]);
+        gl.bindBuffer(gl.ARRAY_BUFFER,squareVertexPositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+		gl.bindBuffer(gl.ARRAY_BUFFER,squareVertexColorBuffer);//Semana3
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, squareVertexColorBuffer.itemSize, gl.FLOAT,false,0,0);//Semana3
+        setMatrixUniforms();
+        gl.drawArrays( gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
+		mat4.translate(mvMatrix, [-3.0, 4.0, 0.0]);//tarea3
+        gl.bindBuffer(gl.ARRAY_BUFFER, hexagonVertexPositionBuffer);//tarea3
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, hexagonVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);//tarea3
+        gl.bindBuffer(gl.ARRAY_BUFFER,hexagonVertexColorBuffer);//tarea3
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, hexagonVertexColorBuffer.itemSize, gl.FLOAT,false,0,0);//tarea3
+		setMatrixUniforms();//tarea3
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, hexagonVertexPositionBuffer.numItems);//tarea3
+    }
+
+
+
+    function webGLStart() {
+        var canvas = document.getElementById("leccion1-canvas");
+        initGL(canvas);
+        initShaders();
+        initBuffers();
+
+        gl.clearColor(.73, .16, .96, 1.0);//Color de fondo 
+        gl.enable(gl.DEPTH_TEST);
+
+        drawScene();
+    }
+
+
+</script>
+
+
+</head>
+
+
+<body onload="webGLStart();">
+
+    <canvas id="leccion1-canvas" style="border: none;" width="800" height="500"></canvas> 
+
+</body>
+
+</html>
